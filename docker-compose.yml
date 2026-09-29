@@ -1,0 +1,54 @@
+services:
+  planka:
+    image: ghcr.io/plankanban/planka:latest
+    restart: unless-stopped
+    ports:
+      - "3000:1337"
+    volumes:
+      - planka-data:/app/data
+    environment:
+      - BASE_URL=http://localhost:3000
+      - DATABASE_URL=postgresql://planka_user:planka_password@postgres:5432/planka_db
+      - SECRET_KEY=898972646867627962764762898972646867627962764762
+      - DEFAULT_ADMIN_EMAIL=17olegov
+      - DEFAULT_ADMIN_PASSWORD=oleg-bez-interneta
+      - DEFAULT_ADMIN_NAME=Oleg
+      - DEFAULT_ADMIN_USERNAME=oleg
+      - TRUST_PROXY=true
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    volumes:
+      - pg-data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=planka_user
+      - POSTGRES_PASSWORD=planka_password
+      - POSTGRES_DB=planka_db
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U planka_user -d planka_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  nginxpm:
+    image: 'jc21/nginx-proxy-manager:latest'
+    restart: unless-stopped
+    ports:
+      - '80:80'
+      - '81:81'
+      - '443:443'
+    volumes:
+      - npm-data:/data
+      - npm-letsencrypt:/etc/letsencrypt
+    depends_on:
+      - planka
+
+volumes:
+  planka-data:
+  pg-data:
+  npm-data:
+  npm-letsencrypt:
